@@ -1,0 +1,69 @@
+use crate::config::Config;
+use handlebars::Handlebars;
+use lettre::message::{header, MultiPart, SinglePart};
+use lettre::transport::smtp::authentication::Credentials;
+use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
+use serde_json::Value;
+
+pub struct EmailService {
+    config: Config,
+    handlebars: Handlebars<'static>,
+    mailer: AsyncSmtpTransport<Tokio1Executor>,
+}
+
+impl EmailService {
+    pub fn new(config: Config) -> Self {
+        let mut handlebars = Handlebars::new();
+        handlebars
+            .register_template_file("email_template", "src/templates/email_template.hbs")
+            .expect("Failed to register email template");
+
+        let creds = Credentials::new(
+            config.from_email.clone(),
+            config.smtp_authorization_code.clone(),
+        );
+
+        let mailer = AsyncSmtpTransport::<Tokio1Executor>::relay(&config.smtp_server)
+            .unwrap()
+            .credentials(creds)
+            .port(config.smtp_port)
+            .build();
+
+        EmailService {
+            config,
+            handlebars,
+            mailer,
+        }
+    }
+
+    pub async fn send_emails(
+        &self,
+        subject: &str,
+        template_data: &Value,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        for recipient in &self.config.recipients {
+            let mut data: Value = template_data.clone();
+            data.as_object_mut().unwrap().insert(
+                "name".to_string(),
+                serde_json::Value::String(recipient.name.clone()),
+            );
+            let body = self.handlebars.render("email_template", &data)?;
+
+            let email = Message::builder()
+                .from(self.config.from_email.parse()?)
+                .to(format!("{} <{}>", recipient.name, recipient.email).parse()?)
+                .subject(subject)
+                .multipart(
+                    MultiPart::mixed().singlepart(
+                        SinglePart::builder()
+                            .header(header::ContentType::TEXT_HTML)
+                            .body(body),
+                    ),
+                )?;
+
+            self.mailer.send(email).await?;
+        }
+
+        Ok(())
+    }
+}

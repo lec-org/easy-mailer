@@ -1,0 +1,15 @@
+smtp_server = "smtp.qq.com"
+smtp_port = 465
+from_email = "TODO"
+smtp_authorization_code = "TODO"
+
+# TODO: 下面可以配置多个收件人
+
+[[recipients]]
+email = "carbon1024@foxmail.com"
+name = "Carbon"
+message = "这是一条示例欢迎消息。请根据需要自定义每个用户的消息。"
+
+# [[recipients]]
+# email = "xxx@xxx.com"
+# name = "其他人"
