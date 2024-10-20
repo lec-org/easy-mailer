@@ -19,9 +19,8 @@ async fn main() -> std::io::Result<()> {
     } else {
         let config = Config::new().expect("Failed to load configuration");
 
-        println!("绑定服务到 127.0.0.1:8080");
+        println!("正在启动， 127.0.0.1:8080");
         HttpServer::new(move || {
-            println!("创建新的 App 实例");
             let cors = Cors::permissive();
             App::new()
                 .wrap(cors)

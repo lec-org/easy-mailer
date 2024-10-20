@@ -14,7 +14,7 @@ async fn send_emails(
     config: web::Data<Config>,
     email_data: web::Json<serde_json::Value>,
 ) -> impl Responder {
-    println!("接收到发送邮件请求");
+    println!("\n接收到发送邮件请求");
 
     let email_service = EmailService::new(config.get_ref().clone());
 
@@ -23,7 +23,15 @@ async fn send_emails(
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-    println!("邮件主题: {}", subject);
+    let email = email_data
+        .get("email")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+
+    let name = email_data
+        .get("name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
 
     let mut template_data = email_data
         .get("template_data")
@@ -43,7 +51,10 @@ async fn send_emails(
 
     println!("模板数据: {:?}", template_data);
 
-    match email_service.send_emails(subject, &template_data).await {
+    match email_service
+        .send_emails(subject, name, email, &template_data)
+        .await
+    {
         Ok(_) => {
             println!("邮件发送成功");
             HttpResponse::Ok().body("Emails sent successfully")
@@ -56,6 +67,5 @@ async fn send_emails(
 }
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
-    println!("配置路由");
     cfg.service(hello).service(send_emails);
 }

@@ -39,30 +39,26 @@ impl EmailService {
     pub async fn send_emails(
         &self,
         subject: &str,
+        name: &str,
+        email: &str,
         template_data: &Value,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        for recipient in &self.config.recipients {
-            let mut data: Value = template_data.clone();
-            data.as_object_mut().unwrap().insert(
-                "name".to_string(),
-                serde_json::Value::String(recipient.name.clone()),
-            );
-            let body = self.handlebars.render("email_template", &data)?;
+        println!("将发送给 {}({}) {:?}", name, email, template_data);
+        let body = self.handlebars.render("email_template", template_data)?;
 
-            let email = Message::builder()
-                .from(self.config.from_email.parse()?)
-                .to(format!("{} <{}>", recipient.name, recipient.email).parse()?)
-                .subject(subject)
-                .multipart(
-                    MultiPart::mixed().singlepart(
-                        SinglePart::builder()
-                            .header(header::ContentType::TEXT_HTML)
-                            .body(body),
-                    ),
-                )?;
+        let email = Message::builder()
+            .from(self.config.from_email.parse()?)
+            .to(format!("{} <{}>", name, email).parse()?)
+            .subject(subject)
+            .multipart(
+                MultiPart::mixed().singlepart(
+                    SinglePart::builder()
+                        .header(header::ContentType::TEXT_HTML)
+                        .body(body),
+                ),
+            )?;
 
-            self.mailer.send(email).await?;
-        }
+        self.mailer.send(email).await?;
 
         Ok(())
     }
