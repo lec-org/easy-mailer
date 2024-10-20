@@ -16,6 +16,7 @@ pub async fn send_email_request() -> Result<(), Box<dyn std::error::Error>> {
             "name": recipient.name,
             "email": recipient.email,
             "template_data": {
+                "name": recipient.name,
                 "message": recipient.message,
                 "date": current_date
             }
